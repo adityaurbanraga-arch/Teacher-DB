@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Urban Raga Teacher Performance Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    body { background:#f5f7fb; color:#111827; }
+    .kpi-card,.dashboard-card{background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+    .kpi-card{border-radius:18px;padding:18px}.dashboard-card{border-radius:20px}.sidebar{background:linear-gradient(180deg,#111827,#0b1020)}
+    table th{position:sticky;top:0;background:#111827;color:#fff;z-index:2} table tr:hover{background:#fff7ed;cursor:pointer}
+    .pill{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}.table-wrap{overflow-x:auto}
+  </style>
+</head>
+<body>
+<div class="min-h-screen flex">
+  <aside class="sidebar hidden lg:flex w-72 text-white p-6 flex-col">
+    <div class="flex items-center gap-3 mb-10"><div class="h-12 w-12 rounded-2xl bg-orange-500 flex items-center justify-center font-bold text-xl">UR</div><div><h1 class="text-xl font-bold">Urban Raga</h1><p class="text-sm text-gray-300">Teacher Dashboard</p></div></div>
+    <nav class="space-y-3 text-sm"><div class="bg-white/10 rounded-xl px-4 py-3">Overview Report</div><div class="text-gray-300 px-4 py-3">Teacher Analysis</div><div class="text-gray-300 px-4 py-3">Monthly Trends</div></nav>
+    <div class="mt-auto text-xs text-gray-400">Live from Google Sheet<br/>Auto-refresh: 60 seconds</div>
+  </aside>
+  <main class="flex-1 p-4 lg:p-8">
+    <header class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+      <div><p class="text-sm text-gray-500">Management Report</p><h2 class="text-2xl lg:text-3xl font-bold">Teacher Performance Dashboard</h2></div>
+      <div class="flex flex-wrap gap-3"><select id="monthFilter" class="rounded-xl border px-4 py-2 bg-white"></select><select id="teacherFilter" class="rounded-xl border px-4 py-2 bg-white"></select><button id="resetBtn" class="rounded-xl bg-gray-900 text-white px-4 py-2">Reset</button></div>
+    </header>
+    <section class="grid grid-cols-2 xl:grid-cols-6 gap-4 mb-6">
+      <div class="kpi-card"><p class="text-sm text-gray-500">Active Students</p><h3 id="kpiActive" class="text-3xl font-bold">0</h3></div>
+      <div class="kpi-card"><p class="text-sm text-gray-500">On Break</p><h3 id="kpiBreak" class="text-3xl font-bold">0</h3></div>
+      <div class="kpi-card"><p class="text-sm text-gray-500">Students Left</p><h3 id="kpiLeft" class="text-3xl font-bold">0</h3></div>
+      <div class="kpi-card"><p class="text-sm text-gray-500">Total Demos</p><h3 id="kpiDemos" class="text-3xl font-bold">0</h3></div>
+      <div class="kpi-card"><p class="text-sm text-gray-500">Enquiries</p><h3 id="kpiEnquiries" class="text-3xl font-bold">0</h3></div>
+      <div class="kpi-card"><p class="text-sm text-gray-500">Enrolments</p><h3 id="kpiEnrolments" class="text-3xl font-bold">0</h3></div>
+    </section>
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+      <div class="dashboard-card p-5"><h3 class="font-bold mb-1">Active Students by Teacher</h3><p class="text-sm text-gray-500 mb-4">Hover on bars to see exact details.</p><canvas id="activeChart"></canvas></div>
+      <div class="dashboard-card p-5"><h3 class="font-bold mb-1">Online vs Offline Students</h3><p class="text-sm text-gray-500 mb-4">Distribution based on selected filters.</p><canvas id="modeChart"></canvas></div>
+      <div class="dashboard-card p-5"><h3 class="font-bold mb-1">Demo Sessions</h3><p class="text-sm text-gray-500 mb-4">Online and offline demo split.</p><canvas id="demoChart"></canvas></div>
+      <div class="dashboard-card p-5"><h3 class="font-bold mb-1">Monthly Active Student Trend</h3><p class="text-sm text-gray-500 mb-4">Month-wise total active students.</p><canvas id="trendChart"></canvas></div>
+    </section>
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div class="dashboard-card p-5 xl:col-span-2"><div class="flex items-center justify-between mb-4"><div><h3 class="font-bold">Teacher Performance Table</h3><p class="text-sm text-gray-500">Click any teacher row to view detailed report.</p></div><input id="searchBox" type="text" placeholder="Search teacher..." class="rounded-xl border px-4 py-2 w-48" /></div><div class="table-wrap max-h-[520px]"><table class="w-full text-sm border-collapse"><thead><tr><th class="p-3 text-left">Teacher</th><th class="p-3 text-right">Active</th><th class="p-3 text-right">Break</th><th class="p-3 text-right">Left</th><th class="p-3 text-right">Demos</th><th class="p-3 text-right">Enquiries</th><th class="p-3 text-right">Enrolments</th><th class="p-3 text-right">Score</th></tr></thead><tbody id="teacherTable"></tbody></table></div></div>
+      <aside class="dashboard-card p-5"><h3 class="font-bold mb-1">Teacher Detail</h3><p class="text-sm text-gray-500 mb-4">Selected teacher performance.</p><div id="teacherDetail" class="space-y-3 text-sm"><p class="text-gray-500">Click a teacher row to see the report.</p></div></aside>
+    </section>
+    <p id="status" class="text-xs text-gray-500 mt-6"></p>
+  </main>
+</div>
+<script>
+const sheetUrl="https://docs.google.com/spreadsheets/d/e/2PACX-1vSO2i6lQzUBW_aAtjjtchDQetcvEpGixrPAaZ2WA948UvXo5qp1Ply_1Ke8ioxTXfqRgK_A5dVnAR7x/pub?gid=0&single=true&output=csv";
+let rawData=[];let charts={};const number=v=>Number(String(v||"0").replace(/,/g,"").trim())||0;const cleanKey=k=>String(k||"").trim().toLowerCase().replace(/\s+/g,"_");
+function normalizeRow(row){const out={};Object.keys(row).forEach(k=>out[cleanKey(k)]=row[k]);return{month:out.month||"",teacher:out.teacher_name||out.teacher||"",active:number(out.active_students),break:number(out.students_on_break),left:number(out.students_left),onlineStudents:number(out.online_students),offlineStudents:number(out.offline_students),onlineDemos:number(out.online_demos),offlineDemos:number(out.offline_demos),totalDemos:number(out.total_demos)||number(out.online_demos)+number(out.offline_demos),enquiries:number(out.enquiries_handled),enrolments:number(out.new_enrolments),retained:number(out.retained_students),remarks:out.remarks||""}}
+function score(r){return Math.round(r.active*.30+r.totalDemos*.20+r.enquiries*.15+r.enrolments*.25-r.left*.10)}
+function loadData(){Papa.parse(sheetUrl,{download:true,header:true,skipEmptyLines:true,complete:res=>{rawData=res.data.map(normalizeRow).filter(r=>r.teacher&&r.month);populateFilters();render();document.getElementById("status").textContent="Last updated: "+new Date().toLocaleString()},error:err=>{document.getElementById("status").textContent="Could not load sheet data. Check if the Google Sheet is published as CSV.";console.error(err)}})}
+function populateFilters(){const mf=document.getElementById("monthFilter"),tf=document.getElementById("teacherFilter");const cm=mf.value,ct=tf.value;const months=[...new Set(rawData.map(r=>r.month))];const teachers=[...new Set(rawData.map(r=>r.teacher))].sort();mf.innerHTML='<option value="">All Months</option>'+months.map(m=>`<option value="${m}">${m}</option>`).join("");tf.innerHTML='<option value="">All Teachers</option>'+teachers.map(t=>`<option value="${t}">${t}</option>`).join("");mf.value=cm;tf.value=ct}
+function filteredData(){const m=document.getElementById("monthFilter").value,t=document.getElementById("teacherFilter").value,s=document.getElementById("searchBox").value.toLowerCase();return rawData.filter(r=>(!m||r.month===m)&&(!t||r.teacher===t)&&(!s||r.teacher.toLowerCase().includes(s)))}
+function groupByTeacher(data){const map={};data.forEach(r=>{if(!map[r.teacher])map[r.teacher]={teacher:r.teacher,active:0,break:0,left:0,onlineStudents:0,offlineStudents:0,onlineDemos:0,offlineDemos:0,totalDemos:0,enquiries:0,enrolments:0,retained:0};Object.keys(map[r.teacher]).forEach(k=>{if(k!=="teacher")map[r.teacher][k]+=r[k]||0})});return Object.values(map).map(r=>({...r,score:score(r)})).sort((a,b)=>b.score-a.score)}
+function render(){const data=filteredData(),teachers=groupByTeacher(data);const totals=teachers.reduce((a,r)=>{a.active+=r.active;a.break+=r.break;a.left+=r.left;a.totalDemos+=r.totalDemos;a.enquiries+=r.enquiries;a.enrolments+=r.enrolments;return a},{active:0,break:0,left:0,totalDemos:0,enquiries:0,enrolments:0});document.getElementById("kpiActive").textContent=totals.active;document.getElementById("kpiBreak").textContent=totals.break;document.getElementById("kpiLeft").textContent=totals.left;document.getElementById("kpiDemos").textContent=totals.totalDemos;document.getElementById("kpiEnquiries").textContent=totals.enquiries;document.getElementById("kpiEnrolments").textContent=totals.enrolments;renderTable(teachers);renderCharts(teachers,data)}
+function renderTable(teachers){const tbody=document.getElementById("teacherTable");tbody.innerHTML=teachers.map(r=>`<tr data-teacher="${r.teacher}" title="Click to open ${r.teacher} detail report"><td class="p-3 border-b font-medium">${r.teacher}</td><td class="p-3 border-b text-right">${r.active}</td><td class="p-3 border-b text-right">${r.break}</td><td class="p-3 border-b text-right">${r.left}</td><td class="p-3 border-b text-right">${r.totalDemos}</td><td class="p-3 border-b text-right">${r.enquiries}</td><td class="p-3 border-b text-right">${r.enrolments}</td><td class="p-3 border-b text-right"><span class="pill bg-orange-100 text-orange-700">${r.score}</span></td></tr>`).join("");[...tbody.querySelectorAll("tr")].forEach(row=>row.addEventListener("click",()=>showTeacher(row.dataset.teacher)))}
+function destroyChart(id){if(charts[id])charts[id].destroy()}
+function renderCharts(teachers,data){const labels=teachers.map(r=>r.teacher);destroyChart("active");charts.active=new Chart(document.getElementById("activeChart"),{type:"bar",data:{labels,datasets:[{label:"Active Students",data:teachers.map(r=>r.active),backgroundColor:"#f97316",borderRadius:8}]},options:{responsive:true,plugins:{tooltip:{callbacks:{afterLabel:ctx=>{const r=teachers[ctx.dataIndex];return[`On break: ${r.break}`,`Left: ${r.left}`,`Enquiries: ${r.enquiries}`,`Demos: ${r.totalDemos}`]}}},legend:{display:false}}}});const onlineTotal=teachers.reduce((a,r)=>a+r.onlineStudents,0),offlineTotal=teachers.reduce((a,r)=>a+r.offlineStudents,0);destroyChart("mode");charts.mode=new Chart(document.getElementById("modeChart"),{type:"doughnut",data:{labels:["Online Students","Offline Students"],datasets:[{data:[onlineTotal,offlineTotal],backgroundColor:["#2563eb","#f97316"]}]},options:{responsive:true}});destroyChart("demo");charts.demo=new Chart(document.getElementById("demoChart"),{type:"bar",data:{labels,datasets:[{label:"Online Demos",data:teachers.map(r=>r.onlineDemos),backgroundColor:"#2563eb",borderRadius:8},{label:"Offline Demos",data:teachers.map(r=>r.offlineDemos),backgroundColor:"#f97316",borderRadius:8}]},options:{responsive:true}});const monthMap={};rawData.forEach(r=>monthMap[r.month]=(monthMap[r.month]||0)+r.active);const months=Object.keys(monthMap);destroyChart("trend");charts.trend=new Chart(document.getElementById("trendChart"),{type:"line",data:{labels:months,datasets:[{label:"Active Students",data:months.map(m=>monthMap[m]),borderColor:"#f97316",backgroundColor:"rgba(249,115,22,.15)",fill:true,tension:.35}]},options:{responsive:true}})}
+function showTeacher(teacherName){const rows=rawData.filter(r=>r.teacher===teacherName);const selectedMonth=document.getElementById("monthFilter").value;const current=selectedMonth?rows.filter(r=>r.month===selectedMonth):rows.slice(-1);const total=groupByTeacher(current)[0]||groupByTeacher(rows)[0];const history=rows.map(r=>`<div class="flex justify-between border-b py-2"><span>${r.month}</span><span>${r.active} active • ${r.totalDemos} demos</span></div>`).join("");document.getElementById("teacherDetail").innerHTML=`<div class="rounded-2xl bg-gray-900 text-white p-4"><p class="text-sm text-gray-300">Teacher</p><h4 class="text-xl font-bold">${teacherName}</h4></div><div class="grid grid-cols-2 gap-3"><div class="rounded-xl bg-orange-50 p-3"><p class="text-xs text-gray-500">Active</p><b>${total.active}</b></div><div class="rounded-xl bg-blue-50 p-3"><p class="text-xs text-gray-500">Demos</p><b>${total.totalDemos}</b></div><div class="rounded-xl bg-red-50 p-3"><p class="text-xs text-gray-500">Left</p><b>${total.left}</b></div><div class="rounded-xl bg-green-50 p-3"><p class="text-xs text-gray-500">Enrolments</p><b>${total.enrolments}</b></div></div><div><p class="font-semibold mb-2">Month History</p>${history||"<p class='text-gray-500'>No history found.</p>"}</div>`}
+document.getElementById("monthFilter").addEventListener("change",render);document.getElementById("teacherFilter").addEventListener("change",render);document.getElementById("searchBox").addEventListener("input",render);document.getElementById("resetBtn").addEventListener("click",()=>{document.getElementById("monthFilter").value="";document.getElementById("teacherFilter").value="";document.getElementById("searchBox").value="";render()});loadData();setInterval(loadData,60000);
+</script>
+</body>
+</html>
