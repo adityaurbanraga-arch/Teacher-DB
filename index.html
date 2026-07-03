@@ -49,7 +49,7 @@
   </main>
 </div>
 <script>
-const sheetUrl="https://docs.google.com/spreadsheets/d/e/2PACX-1vSO2i6lQzUBW_aAtjjtchDQetcvEpGixrPAaZ2WA948UvXo5qp1Ply_1Ke8ioxTXfqRgK_A5dVnAR7x/pub?gid=0&single=true&output=csv";
+const sheetUrl="https://docs.google.com/spreadsheets/d/e/2PACX-1vSO2i6lQzUBW_aAtjjtchDQetcvEpGixrPAaZ2WA948UvXo5qp1Ply_1Ke8ioxTXfqRgK_A5dVnAR7x/pub?output=csv";
 let rawData=[];let charts={};const number=v=>Number(String(v||"0").replace(/,/g,"").trim())||0;const cleanKey=k=>String(k||"").trim().toLowerCase().replace(/\s+/g,"_");
 function normalizeRow(row){const out={};Object.keys(row).forEach(k=>out[cleanKey(k)]=row[k]);return{month:out.month||"",teacher:out.teacher_name||out.teacher||"",active:number(out.active_students),break:number(out.students_on_break),left:number(out.students_left),onlineStudents:number(out.online_students),offlineStudents:number(out.offline_students),onlineDemos:number(out.online_demos),offlineDemos:number(out.offline_demos),totalDemos:number(out.total_demos)||number(out.online_demos)+number(out.offline_demos),enquiries:number(out.enquiries_handled),enrolments:number(out.new_enrolments),retained:number(out.retained_students),remarks:out.remarks||""}}
 function score(r){return Math.round(r.active*.30+r.totalDemos*.20+r.enquiries*.15+r.enrolments*.25-r.left*.10)}
